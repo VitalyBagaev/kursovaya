@@ -4,44 +4,65 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreProductionBatchRequest;
 use App\Http\Requests\UpdateProductionBatchRequest;
+use App\Models\Product;
 use App\Models\ProductionBatch;
+use App\Models\Workshop;
+use Illuminate\Support\Facades\Auth;
 
 class ProductionBatchController extends Controller
 {
-    public function index()
+    public function batchAll()
     {
-        $batches = ProductionBatch::with(['product', 'workshop', 'user', 'reports'])->get();
-        return response()->json($batches);
+        $batches = ProductionBatch::with(['product', 'workshop', 'user', 'reports'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json(['batches' => $batches]);
     }
 
-    public function store(StoreProductionBatchRequest $request)
-    {
-        $data = $request->validated();
-        $data['user_id'] = $request->user()->id;
-
-        $batch = ProductionBatch::create($data);
-        $batch->load(['product', 'workshop', 'user', 'reports']);
-
-        return response()->json($batch, 201);
-    }
-
-    public function show(ProductionBatch $batch)
+    public function batchGet(ProductionBatch $batch)
     {
         $batch->load(['product', 'workshop', 'user', 'reports']);
-        return response()->json($batch);
+
+        return response()->json(['batch' => $batch]);
     }
 
-    public function update(UpdateProductionBatchRequest $request, ProductionBatch $batch)
+    public function batchAdd(StoreProductionBatchRequest $request)
     {
-        $batch->update($request->validated());
-        $batch->load(['product', 'workshop', 'user', 'reports']);
+        $product = Product::where('id', $request->product_id)->first();
+        $workshop = Workshop::where('id', $request->workshop_id)->first();
 
-        return response()->json($batch);
+        if ($product && $workshop) {
+            $batch = new ProductionBatch();
+            $batch->batch_number = $request->batch_number;
+            $batch->product_id = $request->product_id;
+            $batch->workshop_id = $request->workshop_id;
+            $batch->user_id = Auth::user()->id;
+            $batch->shift_number = $request->shift_number;
+            $batch->quantity_produced = $request->quantity_produced;
+            $batch->status = $request->status ?? 'изготовлена';
+            $batch->produced_at = $request->produced_at;
+            $batch->save();
+
+            return response()->json(['batch' => $batch], 201);
+        } else {
+            return response()->json(['errors' => 'Изделие или цех не найдены'], 404);
+        }
     }
 
-    public function destroy(ProductionBatch $batch)
+    public function batchEdit(UpdateProductionBatchRequest $request, ProductionBatch $batch)
+    {
+        $batch->quantity_produced = $request->quantity_produced;
+        $batch->status = $request->status;
+        $batch->save();
+
+        return response()->json(['batch' => $batch]);
+    }
+
+    public function batchDelete(ProductionBatch $batch)
     {
         $batch->delete();
-        return response()->json(['message' => 'Партия удалена']);
+
+        return response()->json(['message' => 'deleted']);
     }
 }

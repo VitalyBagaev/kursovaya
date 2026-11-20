@@ -8,31 +8,43 @@ use App\Models\Workshop;
 
 class WorkshopController extends Controller
 {
-    public function index()
+    public function workshopAll()
     {
-        return response()->json(Workshop::all());
+        $workshops = Workshop::orderBy('id', 'asc')->get();
+
+        return response()->json(['workshops' => $workshops]);
     }
 
-    public function store(StoreWorkshopRequest $request)
+    public function workshopGet(Workshop $workshop)
     {
-        $workshop = Workshop::create($request->validated());
-        return response()->json($workshop, 201);
+        return response()->json(['workshop' => $workshop]);
     }
 
-    public function show(Workshop $workshop)
+    public function workshopAdd(StoreWorkshopRequest $request)
     {
-        return response()->json($workshop);
+        $workshop = new Workshop;
+        $workshop->name = $request->name;
+        $workshop->code = $request->code;
+        $workshop->description = $request->description;
+        $workshop->save();
+
+        return response()->json(['workshop' => $workshop], 201);
     }
 
-    public function update(UpdateWorkshopRequest $request, Workshop $workshop)
+    public function workshopEdit(UpdateWorkshopRequest $request, Workshop $workshop)
     {
-        $workshop->update($request->validated());
-        return response()->json($workshop);
+        $workshop->name = $request->name;
+        $workshop->code = $request->code;
+        $workshop->description = $request->description;
+        $workshop->save();
+
+        return response()->json(['workshop' => $workshop]);
     }
 
-    public function destroy(Workshop $workshop)
+    public function workshopDelete(Workshop $workshop)
     {
         $workshop->delete();
-        return response()->json(['message' => 'Цех удалён']);
+
+        return response()->json(['message' => 'deleted']);
     }
 }
